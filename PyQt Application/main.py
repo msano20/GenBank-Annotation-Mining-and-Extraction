@@ -26,7 +26,6 @@ class MainWindowUIClass(QtWidgets.QMainWindow, Ui_MainWindow):
         self.ui.setupUi(self)
         self.setupUi(Ui_MainWindow())
         #self.mainwindow = Ui_MainWindow()
-    
 
     
 def main():
