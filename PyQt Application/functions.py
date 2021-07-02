@@ -4,11 +4,6 @@ Created on Mon Jun 14 15:34:16 2021
 
 @author: misum
 """
-from PyQt5 import QtCore, QtGui, QtWidgets, uic
-from PyQt5.QtCore import QObject, pyqtSlot
-from PyQt5.QtWidgets import QApplication, QLabel, QLineEdit, QVBoxLayout, QWidget, \
-    QMainWindow, QPushButton, QVBoxLayout, QFileDialog
-import os
 import re 
 
 class Functions:
@@ -16,7 +11,6 @@ class Functions:
         self.fileName = None
         self.fileContent = ""
         
-
     def getAnnotationFolder(self, MainWindow):
         options = QtWidgets.QFileDialog.Options()
         filename = QFileDialog.getExistingDirectory(None, 
@@ -29,21 +23,18 @@ class Functions:
             return clean_filename
         else:
             print("no")
-        
-        ##DEPRECIATED
-    def getFastaFile(self, flank):
-        options = QtWidgets.QFileDialog.Options()
-        filename = QFileDialog.getOpenFileName(None, 
-        "QFileDialog.getOpenFileName()", "Open file","FASTA Files (*.fasta *.fsa);;Text Files (*.txt)", options=options)
-
-        if filename:
-            print(filename)
-            clean_filename = (str(filename[0]))
-            print("cleaned filename::", clean_filename)
-            return clean_filename
-        else:
-            print("no")
     
+    def searchInterpreter(self, searchDictionary, MainWindow):
+        #Determines which search fields contain terms. 
+        newDictionary = {}
+        print('search dicionary:', searchDictionary)
+        for key, value in searchDictionary.items():
+            if searchDictionary[key]:
+                #print(value)
+                newDictionary = dict({key:value})
+            else:
+                print("no value")
+        return newDictionary
     
     def flankIdentifier(self, flank, MainWindow):
         cleaned_flank = flank.lower()
@@ -65,15 +56,16 @@ class Functions:
             print('cant be identified')
         return f_format
     
-    def determineRange(self, location1, location2, MainWindow):
-        miu = (min(f1_loc))
-        mau = (max(f1_loc))
-        mia = (min(f2_loc))
-        maa = (max(f2_loc))
+    def determineRange(self, location1, location2, MainWindow): 
+        #print("location 1:", location1)
+        minF1 = (min(location1))
+        maxF1 = (max(location1))
+        minF2 = (min(location2))
+        maxF2 = (max(location2))
+        
+        print(minF1)
                     
-        locusvals = [miu,mau,mia,maa]
+        locusvals = [minF1, maxF1, minF2, maxF2]
         loc_max = (max(locusvals))
-        loc_min = (min(locusvals))
-                
-        print("Locus minimum:",loc_min)
-        print("Locus maximum:",loc_max)
+        loc_min = (min(locusvals))         
+        return loc_min, loc_max
