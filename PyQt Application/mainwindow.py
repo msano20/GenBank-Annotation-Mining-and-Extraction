@@ -6,12 +6,18 @@
 #
 # WARNING! All changes made in this file will be lost!
 
+'''
+need to account for instances where there is a \n
 
+account for genes coming from different strands
+
+update textEdit and progressbar
+'''
 import os
 from PyQt5.QtWidgets import QApplication, QLabel, QLineEdit, QVBoxLayout, QWidget, \
     QMainWindow, QPushButton, QVBoxLayout, QFileDialog
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QObject, pyqtSlot
+from PyQt5.QtCore import QObject
 import sys
 from functions import Functions
 import logging
@@ -27,7 +33,6 @@ logging.basicConfig(filename='Errors.log', filemode='a', format='%(name)s - %(le
 
 csv_headers = ['Species', 'Group', 'Strain', 'Chr', 'Accession', 'LocusTag', 'ProtID', 'Seq']
 
-output_filename = "Gene_extraction.csv"
 
 class Ui_MainWindow(QObject):
     def setupUi(self, MainWindow):
@@ -174,6 +179,8 @@ class Ui_MainWindow(QObject):
         protID = self.protid_Input.text()
         #geneName = self.gene_nameInput.text()
         '''
+        flank_1 = self.flankInput1.text()
+        flank_2 = self.flankInput2.text()
         targetCustomization = dict(locus_tag=self.locuslabel_Input.text(), old_locus_tag=self.oldlocus_Input.text(),
                                    product=self.product_Input.text(), protein_id = self.protid_Input.text(), 
                                    gene = self.gene_nameInput.text())
@@ -183,190 +190,213 @@ class Ui_MainWindow(QObject):
         print(searchTerms)
         
         outputLocation = self.FolderInput.text()
-        flank_1 = self.flankInput1.text()
-        flank_2 = self.flankInput2.text()
+        
+        
+        print("flank1:", flank_1)
+        print("flank2:", flank_2)
+        
+        print("flank1 type:", type(flank_1))
         
         flankFormat1 = Functions.flankIdentifier(self, flank_1, MainWindow)
         flankFormat2 = Functions.flankIdentifier(self, flank_2, MainWindow)
         
-        print(flankFormat1)
+        print("flank1 format:", flankFormat1)
+        print("flank2 format:", flankFormat2)
         
+        #raise flag if no search terms were entered by user
+        emptyDict = all(x==None for x in searchTerms.items())
+        print("emptydict status:", emptyDict)
             
         for root, dirs, assembly in os.walk(outputLocation, topdown=True):
+            flank1matches = 0
+            flank2matches = 0
             for strain in assembly:
                 strain = os.path.join(root, strain)
                 if strain.endswith('.gbff'):
                     print(strain)
-                    annotFile = SeqIO.parse(strain, 'gb')
+                    #annotFile = SeqIO.parse(strain, 'gb')
                     for record in SeqIO.parse(strain, "gb"): #prints seqs for all three chromosomes
                         #print(record.seq[:20])
                         for feature in record.features:
                         #print(feature.source)
                             if feature.type == "CDS":
+                                try:
+                                    if feature.qualifiers['%s' % flankFormat1][0] == flank_1:
+                                        f1_loc = feature.location
+                                        f1_desc = record.description
+                                        flank1matches += 1
+                                        print("found 1 %s", f1_loc)
+                                    if feature.qualifiers['%s' % flankFormat2][0] == flank_2:
+                                        f2_loc = feature.location
+                                        f2_desc = record.description
+                                        flank2matches += 1
+                                        print("found 2 %s", f2_loc)
+                                except:
+                                    pass
+                                '''
                                 if feature.qualifiers['%s' % flankFormat1][0] == flank_1:
-                                    f1_loc = feature.location
-                                    f1_desc = record.description
-                                    print("found 1 %s", f1_loc)
                                 if feature.qualifiers['%s' % flankFormat2][0] == flank_2:
-                                    f2_loc = feature.location
-                                    f2_desc = record.description
-                                    print("found 2 %s", f2_loc)
-                            
-                    try:
+                                '''
+                    #if flank1matches or flank2matches > 2:
+                    if flank1matches > 1 or flank2matches > 1:
+                        print("Multiple flanks match description. Consider using more unique identifiers")
+                        print("flank1's found:", flank1matches)
+                        print("flank2's found:", flank2matches)
+                        continue
+                    
+                    else:
+                        try:
                             loc_min, loc_max = Functions.determineRange(self, f1_loc, f2_loc, MainWindow)
                             print("Locus minimum:",loc_min)
                             print("Locus maximum:",loc_max)
-                    except:
+                        except:
                             print("flank not determined")
                             #logging.error('%s Flank locations could not be determined' % (strain))
                             continue
-                
-        #search process
-        candidate = [] #contains the gene of interest
-        for root, dirs, assembly in os.walk('.', topdown=True):
-            for strain in assembly:
-                strain = os.path.join(root, strain)
-                if strain.endswith('.gbff'):     
-                    for record in SeqIO.parse(strain, "gb"):
-                        if record.description == f1_desc == f2_desc:
-                            gene_desc = record.description
-                            print(gene_desc)
-                            for feature in record.features:
-                                if feature.type == "CDS":
-                                    
-                                    if min(feature.location) in range(loc_min,loc_max):
-                                        print(searchTerms)
-                                        if searchTerms != {}:
-                                            for key, value in searchTerms.items():
-                                                if feature.qualifiers['%s' % key][0] == value:
-                                                    print('key found:' )
-                                                    print(key, value)
-                                                    candidate.append(feature)
-                                                    record_info = record
-                                                    source_feature = record.features[0]
-                                                    source_qualifiers = source_feature.qualifiers
-                                                    try:
-                                                        rec_desc = record.description
-                                                    except:
-                                                        rec_desc = ""
-                                                    try:
-                                                        rec_id = record.id
-                                                    except:
-                                                        rec_id = ""
-                                                
-                                            print(candidate)
-                                        else:
-                                            print('append to candidates')
+                    
+                    #search process
+                    candidate = [] #contains the gene of interest
+                    for root, dirs, assembly in os.walk('.', topdown=True):
+                        for strain in assembly:
+                            strain = os.path.join(root, strain)
+                            if strain.endswith('.gbff'):     
+                                for record in SeqIO.parse(strain, "gb"):
+                                    if record.description == f1_desc == f2_desc:
+                                        gene_desc = record.description
+                                        print(gene_desc)
+                                        for feature in record.features:
+                                            if feature.type == "CDS":
+                                                if min(feature.location) in range(loc_min,loc_max):
+                                                    #print("SEARCH TERMS keys:",searchTerms.keys())
+                                                    
+                                                    if emptyDict == False:
+                                                        for key, value in searchTerms.items():
+                                                            print("key:", key)
+                                                            print("value:", value)
+                                                            print("---")
+                                                            if feature.qualifiers['%s' % key][0] == value:
+                                                                print('key found:' )
+                                                                print(key, value)
+                                                                candidate.append(feature)
+                                                        
+                                                                record_info = record
+                                                                source_feature = record.features[0]
+                                                                source_qualifiers = source_feature.qualifiers
+                                                                
+                                                                try:
+                                                                    rec_desc = record.description
+                                                                except:
+                                                                    rec_desc = ""
+                                                                try:
+                                                                    rec_id = record.id
+                                                                except:
+                                                                    rec_id = ""
+                                                                
+                                                            
+                                                        #print(candidate)
+                                                    elif emptyDict == True:
+                                                        record_info = record
+                                                        source_feature = record.features[0]
+                                                        source_qualifiers = source_feature.qualifiers
+                                                        candidate.append(feature)
+                                                        try:
+                                                            rec_desc = record.description
+                                                        except:
+                                                            rec_desc = ""
+                                                        try:
+                                                            rec_id = record.id
+                                                        except:
+                                                            rec_id = ""
                                         
-                                        #(term in feature.qualifiers['%s' % flankFormat1][0]
-                                        #if feature.qualifiers[term][0] == 
-                                    #print(feature.qualifiers)
-                                    '''
-                                    if feature.qualifiers['%s' % flankFormat1][0] == target_gene and \
-                                        loc_min < min(feature.location) < loc_max: 
-                                            print(feature.qualifiers['product'][0])    
-                                            candidate.append(feature)
-                                            record_info = record
-                                            source_feature = record.features[0]
-                                            source_qualifiers = source_feature.qualifiers
-                                            try:
-                                                rec_desc = record.description
-                                            except:
-                                                rec_desc = ""
-                                            try:
-                                                rec_id = record.id
-                                            except:
-                                                rec_id = ""
+                    print("list of candidates:", candidate)
+                    output_filename = (str(rec_id) + ' ' + str(rec_desc) + '.csv')
+                    if candidate != []:
+                        #if len(candidate) <= max_homologs:
+                            for item in candidate:
+                            #extract the following elements of the annotation file:
+                                try:
+                                    c_species = record_info.annotations["taxonomy"][5] #species
+                                except: 
+                                    c_species = float("NaN")
+                                            
+                                try: 
+                                    c_family = record_info.annotations["taxonomy"][6] #strain (if available)
+                                except: 
+                                    c_family = float("NaN")
+                                            
+                                try:
+                                    c_strain = str(source_qualifiers["strain"])
+                                    c_strain_raw = c_strain.strip("[\']")
+                                    #c_strain = record.annotations['organism']
+                                except: 
+                                    c_strain_raw = float("NaN")
+                                            
+                                try: 
+                                    c_chr = str(source_qualifiers["chromosome"]) #(as an integer)
+                                    c_chr_raw = c_chr.strip("[\']")
+                                except: 
+                                    c_chr_raw = float("NaN")
+                                          
                                                 
-                                            print(candidate)
-                                    '''
-        if candidate != []:
-            #if len(candidate) <= max_homologs:
-                for item in candidate:
-                #extract the following elements of the annotation file:
-                    try:
-                        c_species = record_info.annotations["taxonomy"][5] #species
-                    except: 
-                        c_species = float("NaN")
-                                
-                    try: 
-                        c_family = record_info.annotations["taxonomy"][6] #strain (if available)
-                    except: 
-                        c_family = float("NaN")
-                                
-                    try:
-                        c_strain = str(source_qualifiers["strain"])
-                        c_strain_raw = c_strain.strip("[\']")
-                        #c_strain = record.annotations['organism']
-                    except: 
-                        c_strain_raw = float("NaN")
-                                
-                    try: 
-                        c_chr = str(source_qualifiers["chromosome"]) #(as an integer)
-                        c_chr_raw = c_chr.strip("[\']")
-                    except: 
-                        c_chr_raw = float("NaN")
-                              
+                                try:
+                                    c_locustag = str(item.qualifiers["locus_tag"])
+                                    c_locustag_raw = c_locustag.strip("[\']")
+                                except:
+                                    c_locustag_raw = float("NaN")
+                                                
+                                try:
+                                    protid = str(item.qualifiers['protein_id'])
+                                    raw_protid = protid.strip("[\']") 
+                                except: 
+                                    raw_protid =  float("NaN")
+                                '''
+                                try:
+                                    gene_name = str(item.qualifiers['gene'])
+                                    raw_gene_name = gene_name.strip("[\']")
+                                except:
+                                    raw_gene_name = float("NaN")
+                                try:
+                                    #rec_desc = record.description
+                                    print("record desc:", rec_desc)
+                                except:
+                                    rec_desc = float("NaN")
                                     
-                    try:
-                        c_locustag = str(item.qualifiers["locus_tag"])
-                        c_locustag_raw = c_locustag.strip("[\']")
-                    except:
-                        c_locustag_raw = float("NaN")
+                                try:
+                                    #rec_id = record.id
+                                    print("record ID:", rec_id)
+                                except:
+                                    rec_id = float("NaN")
+                                '''
+                                try:
+                                    gene_seq = (item.qualifiers['translation'][0])
+                                except:
+                                    gene_seq = float("NaN")
+                                    #logging.error('%s %s sequence information unavailable' % (gene_desc, strain))
                                     
-                    try:
-                        protid = str(item.qualifiers['protein_id'])
-                        raw_protid = protid.strip("[\']") 
-                    except: 
-                        raw_protid =  float("NaN")
-                                    
-                    try:
-                        gene_seq = (item.qualifiers['translation'][0])
-                    except:
-                        logging.error('%s %s sequence information unavailable' % (gene_desc, strain))
-                        gene_seq = float("NaN")
-
-                    print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq)                  
-                    new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq]
+                                print("printing new row: ==============================")
+                                print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq)                  
+                                new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq]
                                 
-                    with open(output_filename, 'a', newline='') as csvfile:  
-                        writer = csv.writer(csvfile)
-                        writer.writerow(new_row)
-                        csvfile.close()
-            
-        else:
-            print("No genes within locus fit the product description")
-            logging.error('%s %s No genes within locus fit the product description' % (gene_desc, strain))
-        
-                                  
+                                
+                                
+                                print(output_filename)
+                                with open(output_filename, 'a', newline='') as csvfile:  
+                                    writer = csv.writer(csvfile)
+                                    writer.writerow(new_row)
+                                    csvfile.close()
+                                
+                    else:
+                        print("No genes within locus fit the product description")
+                        #logging.error('%s %s No genes within locus fit the product description' % (gene_desc, strain))
+                    
+                                              
         ureg_loc = None #need to ensure flank locations are not remembered after script ends  
         apah_loc = None #otherwise the script will borrow the previously used location as a substitute
         #return loc_min, loc_max, f1_desc, f2_desc
 
 #loc_min, loc_max, f1_desc, f2_desc = flanksearch()
-        
-        #print(str("inputfile: %s", inputFile1))
-        #print(locusLabel)
-        print(range(loc_min,loc_max))
-                        #if record.seq
-                        #print(record.annotations["source"])
+
 '''
-   
-        for root, dirs, assembly in os.walk(outputLocation, topdown=True):
-            for strain in assembly:
-                strain = os.path.join(root, strain)
-                if strain.endswith('.gbff'):
-                    print(strain)
-                    for record in SeqIO.parse(strain, "gb"):
-                        #print(record.features[0])
-                        #print(record.annotations["source"])
-                        
-    
-    
-    
-    
-    
-    
     def __init__(self):
         self.fileName = None
         self.fileContent = ""

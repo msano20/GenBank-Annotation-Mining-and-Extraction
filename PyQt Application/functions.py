@@ -5,6 +5,8 @@ Created on Mon Jun 14 15:34:16 2021
 @author: misum
 """
 import re 
+from PyQt5.QtWidgets import QFileDialog
+from PyQt5 import QtWidgets
 
 class Functions:
     def __init__(self):
@@ -19,7 +21,7 @@ class Functions:
         if filename:
             print(filename)
             clean_filename = (str(filename))
-            print("cleaned filename:", clean_filename)
+            #print("cleaned filename:", clean_filename)
             return clean_filename
         else:
             print("no")
@@ -27,13 +29,10 @@ class Functions:
     def searchInterpreter(self, searchDictionary, MainWindow):
         #Determines which search fields contain terms. 
         newDictionary = {}
-        print('search dicionary:', searchDictionary)
         for key, value in searchDictionary.items():
             if searchDictionary[key]:
                 #print(value)
                 newDictionary = dict({key:value})
-            else:
-                print("no value")
         return newDictionary
     
     def flankIdentifier(self, flank, MainWindow):

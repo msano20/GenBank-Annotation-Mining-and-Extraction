@@ -33,7 +33,6 @@ def main():
     MainWindow = QtWidgets.QMainWindow()
     #ui = MainWindowUIClass()
     ui = Ui_MainWindow()
-    
     ui.setupUi(MainWindow)
     MainWindow.show()
     sys.exit(app.exec_())
