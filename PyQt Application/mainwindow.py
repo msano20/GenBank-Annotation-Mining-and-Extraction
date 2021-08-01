@@ -242,30 +242,32 @@ class Ui_MainWindow(QObject):
                
                     #if flank1matches or flank2matches > 2:
                     if flank1matches > 1 or flank2matches > 1:
-                        
                         print("Multiple flanks match description. Consider using more unique identifiers")
                         print("flank1's found:", flank1matches)
                         print("flank2's found:", flank2matches)
                         continue
                     
-                    else:
+                    elif flank1matches == 0 or flank2matches == 0:
+                        print("Missing a flank.")
+                        continue
+                    
+                    elif flank1matches == 1 and flank2matches == 1:
                         try:
                             loc_min, loc_max = Functions.determineRange(self, f1_loc, f2_loc, MainWindow)
                             print("flanks found in %s" % strain)
                             print("Locus minimum:",loc_min)
                             print("Locus maximum:",loc_max)
                         except:
-                            print("flank not determined")
+                            print("%s flank not determined" % strain)
                             #logging.error('%s Flank locations could not be determined' % (strain))
                             continue
-                        
-                    #!!!self.textEdit.append("%s GenBank annotation files found.")
-                    #!!!self.progressBar.setRange(0, totalFileCount)
-                    print("total file count:", totalFileCount)
-                    
+                                
+                        #!!!self.textEdit.append("%s GenBank annotation files found.")
+                        #!!!self.progressBar.setRange(0, totalFileCount)
+                    #print("total file count:", totalFileCount)
+                
                     #search process
                     candidate = [] #contains the gene of interest
-                    
                     for root, dirs, assembly in os.walk('.', topdown=True):
                         for strain in assembly:
                             strain = os.path.join(root, strain)
@@ -280,7 +282,7 @@ class Ui_MainWindow(QObject):
                                         print(gene_desc)
                                         for feature in record.features:
                                             if feature.type == "CDS":
-                                                if min(feature.location) in range(loc_min,loc_max):
+                                                if min(feature.location) in range((loc_min),loc_max):
                                                     #print("SEARCH TERMS keys:",searchTerms.keys())
                                                     
                                                     if emptyDict == False:
@@ -288,8 +290,8 @@ class Ui_MainWindow(QObject):
                                                             #print("key:", key)
                                                             #print("value:", value)
                                                             #print("---")
-                                                            if feature.qualifiers['%s' % key][0] == value:
-                                                                print('key found:' )
+                                                            if feature.qualifiers[key][0] == value:
+                                                                
                                                                 #print(key, value)
                                                                 candidate.append(feature)
                                                         
@@ -325,13 +327,15 @@ class Ui_MainWindow(QObject):
                     print("PRINTING LIST OF CANDIDATES:", candidate)
                     print("-----------------------------------------")
                     
-                    output_filename = (str(rec_id) + ' ' + str(rec_desc) + '.csv')
+                    
+                    print("candidate type:", type(candidate))
+                         #counts genes in list
                     if candidate != []:
-                        self.textEdit.append("Extracting %s genes from %s..." % (len(candidate), rec_desc))
+                        candidate_amount = 0
                         #if len(candidate) <= max_homologs:
                         for item in candidate:
-                            
-                        #extract the following elements of the annotation file:
+                            candidate_amount += 1
+                            #extract the following elements of the annotation file:
                             try:
                                 c_species = record_info.annotations["taxonomy"][5] #species
                             except: 
@@ -396,27 +400,37 @@ class Ui_MainWindow(QObject):
                             new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq]
                             
                             
-                            
-                            print(output_filename)
+                            searchTermDict = ""
+                            if emptyDict == True:
+                                searchTermDict = "All"
+                            else:
+                                
+                                for key, value in searchTerms.items():
+                                    searchTermDict += key + "-" + value + "_"
+                                    #i += 1
+                            output_filename = (str(c_species) + '_' + str(searchTermDict) + '.csv')
                             with open(output_filename, 'a', newline='') as csvfile:  
                                 writer = csv.writer(csvfile)
                                 writer.writerow(new_row)
                                 csvfile.close()
                                 
-                            
-                else:
-                    print("No genes within locus fit the product description")
+                        print("candidate length:", candidate_amount)     
+                        self.textEdit.append("Extracted %s genes from %s..." % (candidate_amount, rec_id))
+                    else:
+                        print("No genes within locus fit the product description")
                     #logging.error('%s %s No genes within locus fit the product description' % (gene_desc, strain))
+                        
+                        
+                        
                 
-                                              
         self.textEdit.append("Extraction finished.")
-        #return loc_min, loc_max, f1_desc, f2_desc
-        
-        #loc_min, loc_max, f1_desc, f2_desc = flanksearch()
+                    #return loc_min, loc_max, f1_desc, f2_desc
+                    
+                    #loc_min, loc_max, f1_desc, f2_desc = flanksearch()
 
 '''
     def __init__(self):
         self.fileName = None
         self.fileContent = ""
 
-'''   
+'''

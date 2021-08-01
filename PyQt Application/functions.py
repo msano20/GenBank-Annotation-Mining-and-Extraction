@@ -63,6 +63,6 @@ class Functions:
         maxF2 = (max(location2))
                     
         locusvals = [minF1, maxF1, minF2, maxF2]
-        loc_max = (max(locusvals))
+        loc_max = (max(locusvals) + 1)
         loc_min = (min(locusvals))         
         return loc_min, loc_max
