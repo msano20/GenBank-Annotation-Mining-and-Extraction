@@ -66,3 +66,14 @@ class Functions:
         loc_max = (max(locusvals) + 1)
         loc_min = (min(locusvals))         
         return loc_min, loc_max
+    
+    def idLocation(self, itemLocation, MainWindow):
+        try:
+            position = itemLocation[itemLocation.find("[")+1:itemLocation.find("]")]
+        except:
+            position = float("NaN")
+        try:
+            strand = itemLocation[itemLocation.find("(")+1:itemLocation.find(")")]
+        except:
+            strand = float("NaN")
+        return position, strand

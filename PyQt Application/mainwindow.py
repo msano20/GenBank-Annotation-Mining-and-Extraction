@@ -11,9 +11,14 @@ need to account for instances where there is a \n
 
 account for genes coming from different strands
 
-update textEdit and progressbar
+update textEdit
+
+Validate met as starting codon using seq
+
+make the makecsv function so the headers are applied
 '''
 import os
+import re
 from PyQt5.QtWidgets import QApplication, QLabel, QLineEdit, QVBoxLayout, QWidget, \
     QMainWindow, QPushButton, QVBoxLayout, QFileDialog
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -26,7 +31,7 @@ from Bio import SeqIO
 
 logging.basicConfig(filename='Errors.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s')
 
-csv_headers = ['Species', 'Group', 'Strain', 'Chr', 'Accession', 'LocusTag', 'ProtID', 'Seq']
+csv_headers = ['Species', 'Group', 'Strain', 'Chr', 'Accession', 'LocusTag', 'ProtID', 'Seq', ]
 
 
 class Ui_MainWindow(QObject):
@@ -291,10 +296,8 @@ class Ui_MainWindow(QObject):
                                                             #print("value:", value)
                                                             #print("---")
                                                             if feature.qualifiers[key][0] == value:
-                                                                
-                                                                #print(key, value)
+                                                                #append to list
                                                                 candidate.append(feature)
-                                                        
                                                                 record_info = record
                                                                 source_feature = record.features[0]
                                                                 source_qualifiers = source_feature.qualifiers
@@ -323,7 +326,8 @@ class Ui_MainWindow(QObject):
                                                             rec_id = record.id
                                                         except:
                                                             rec_id = ""
-                                        
+                    
+                    #At this point, candidate should contain all qualifying features
                     print("PRINTING LIST OF CANDIDATES:", candidate)
                     print("-----------------------------------------")
                     
@@ -334,6 +338,7 @@ class Ui_MainWindow(QObject):
                         candidate_amount = 0
                         #if len(candidate) <= max_homologs:
                         for item in candidate:
+                            print("item:", item)
                             candidate_amount += 1
                             #extract the following elements of the annotation file:
                             try:
@@ -358,8 +363,17 @@ class Ui_MainWindow(QObject):
                                 c_chr_raw = c_chr.strip("[\']")
                             except: 
                                 c_chr_raw = float("NaN")
-                                      
-                                            
+                            
+                            try:
+                                c_loc_raw = str(item.location)
+                                print("success. Location:", c_loc_raw)
+                            except:
+                                c_loc_raw = float("NaN")
+                                
+                            
+                            #Dividing location into position and sense
+                            position, strand = Functions.idLocation(self, c_loc_raw, MainWindow)
+
                             try:
                                 c_locustag = str(item.qualifiers["locus_tag"])
                                 c_locustag_raw = c_locustag.strip("[\']")
@@ -371,24 +385,7 @@ class Ui_MainWindow(QObject):
                                 raw_protid = protid.strip("[\']") 
                             except: 
                                 raw_protid =  float("NaN")
-                            '''
-                            try:
-                                gene_name = str(item.qualifiers['gene'])
-                                raw_gene_name = gene_name.strip("[\']")
-                            except:
-                                raw_gene_name = float("NaN")
-                            try:
-                                #rec_desc = record.description
-                                print("record desc:", rec_desc)
-                            except:
-                                rec_desc = float("NaN")
-                                
-                            try:
-                                #rec_id = record.id
-                                print("record ID:", rec_id)
-                            except:
-                                rec_id = float("NaN")
-                            '''
+
                             try:
                                 gene_seq = (item.qualifiers['translation'][0])
                             except:
@@ -396,17 +393,16 @@ class Ui_MainWindow(QObject):
                                 #logging.error('%s %s sequence information unavailable' % (gene_desc, strain))
                                 
                             print("printing new row: ==============================")
-                            print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq)                  
-                            new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq]
+                            print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, position, strand)                  
+                            new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, position, strand]
                             
                             
                             searchTermDict = ""
                             if emptyDict == True:
-                                searchTermDict = "All"
+                                searchTermDict = "All" #!!Id can be inputted flank names
                             else:
-                                
                                 for key, value in searchTerms.items():
-                                    searchTermDict += key + "-" + value + "_"
+                                    searchTermDict += key + "-" + value + "_" #make a cleaner output
                                     #i += 1
                             output_filename = (str(c_species) + '_' + str(searchTermDict) + '.csv')
                             with open(output_filename, 'a', newline='') as csvfile:  
