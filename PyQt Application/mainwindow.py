@@ -365,15 +365,25 @@ class Ui_MainWindow(QObject):
                                 c_chr_raw = float("NaN")
                             
                             try:
-                                c_loc_raw = str(item.location)
+                                c_loc_raw = item.location
+                                print("item location:", item.location)
+                                print("c_loc_ra type:", type(c_loc_raw))
                                 print("success. Location:", c_loc_raw)
                             except:
                                 c_loc_raw = float("NaN")
                                 
                             
                             #Dividing location into position and sense
-                            position, strand = Functions.idLocation(self, c_loc_raw, MainWindow)
-
+                            position, strand = Functions.idLocation(self, str(c_loc_raw), MainWindow)
+                            print("c_loc after id loc", type(c_loc_raw))
+                            print("position type:", type(position))
+                            print(position)
+                            posStart, posEnd = position.split(':')
+                           
+                            
+                        
+                            #print("int position:", int(float(position)))
+                            print(type(strand))
                             try:
                                 c_locustag = str(item.qualifiers["locus_tag"])
                                 c_locustag_raw = c_locustag.strip("[\']")
@@ -391,6 +401,28 @@ class Ui_MainWindow(QObject):
                             except:
                                 gene_seq = float("NaN")
                                 #logging.error('%s %s sequence information unavailable' % (gene_desc, strain))
+                            
+                            #sequence comparison - gbff translation compared to manual extraction and translation
+                            DNA_seq_raw = record_info.seq[int(posStart):int(posEnd)]
+                            try:  
+                                if strand == '+':
+                                    #DNA_seq_raw = record_info.seq[int(posStart):int(posEnd)]#+1]
+                                    DNA_seq = DNA_seq_raw
+                                    print(DNA_seq)
+                                elif strand == '-':
+                                    #DNA_seq_raw = record_info.seq[int(posStart):int(posEnd)]
+                                    print("original seq:", DNA_seq_raw)
+                                    print("reverse complementing")
+                                    DNA_seq = (DNA_seq_raw.reverse_complement())
+                                    print(DNA_seq)
+                                DNA_transl = DNA_seq.translate(table=11) #you could infer the table based on the record info
+                                print("my translation:", DNA_transl)
+                                #print(record_info.seq[position])
+                                #print(seq[c_loc_raw])
+                            except:
+                                print("cant retrieve seq")
+                                
+                                
                                 
                             print("printing new row: ==============================")
                             print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, position, strand)                  
