@@ -7,15 +7,15 @@
 # WARNING! All changes made in this file will be lost!
 
 '''
-need to account for instances where there is a \n
-
-account for genes coming from different strands
 
 update textEdit
 
-Validate met as starting codon using seq
-
 make the makecsv function so the headers are applied
+
+add some kind of indicator that a sequence Was manually extracted and 
+overrid the stated seq
+
+looks for more opportunities to condense mainindo through the functions script
 '''
 import os
 import re
@@ -31,8 +31,10 @@ from Bio import SeqIO
 
 logging.basicConfig(filename='Errors.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s')
 
-csv_headers = ['Species', 'Group', 'Strain', 'Chr', 'Accession', 'LocusTag', 'ProtID', 'Seq', ]
+csv_headers = ['Species', 'Group', 'Strain', 'Chr', 'Accession', 'LocusTag', 'ProtID', 'Seq', 'Product', 'Location', 'Strand', 'SeqOverride']
 
+#ambiguous flanks cannot be used
+invalidFlanks = ['>', '<', 'join'] 
 
 class Ui_MainWindow(QObject):
     def setupUi(self, MainWindow):
@@ -196,8 +198,7 @@ class Ui_MainWindow(QObject):
         
         print("flank1:", flank_1)
         print("flank2:", flank_2)
-        
-        print("flank1 type:", type(flank_1))
+
         
         flankFormat1 = Functions.flankIdentifier(self, flank_1, MainWindow)
         flankFormat2 = Functions.flankIdentifier(self, flank_2, MainWindow)
@@ -229,12 +230,21 @@ class Ui_MainWindow(QObject):
                             if feature.type == "CDS":
                                 try:
                                     if feature.qualifiers['%s' % flankFormat1][0] == flank_1:
+                                        #f1_loc = str(feature.location) #converted to str for 'any' function
                                         f1_loc = feature.location
+                                        print(type(f1_loc))
+                                        #if any(x in f1_loc for x in invalidFlanks):
+                                            #print("invalid symbol")
+                                            #break
                                         f1_desc = record.description
                                         flank1matches += 1
                                         print("found 1 %s", f1_loc)
                                     if feature.qualifiers['%s' % flankFormat2][0] == flank_2:
+                                        #f2_loc = str(feature.location)
                                         f2_loc = feature.location
+                                        #if any(x in f2_loc for x in invalidFlanks):
+                                            #print("invalid symbol")
+                                            #break
                                         f2_desc = record.description
                                         flank2matches += 1
                                         print("found 2 %s", f2_loc)
@@ -244,16 +254,23 @@ class Ui_MainWindow(QObject):
                                 if feature.qualifiers['%s' % flankFormat1][0] == flank_1:
                                 if feature.qualifiers['%s' % flankFormat2][0] == flank_2:
                                 '''
-               
-                    #if flank1matches or flank2matches > 2:
+                    #print(type(f1_loc))
+                    #print("any statement:", any(x in f1_loc for x in invalidFlanks))
+                    if (any(x in str(f1_loc) for x in invalidFlanks) or any(x in str(f2_loc) for x in invalidFlanks)): #or any(x in f2_loc for x in invalidFlanks)):
+                        print("Cannot use partial or joined sequences as flanks (%s to %s)." % (f1_loc, f2_loc))
+                        break
+                             
+                    #could move this verification process into functions
                     if flank1matches > 1 or flank2matches > 1:
                         print("Multiple flanks match description. Consider using more unique identifiers")
                         print("flank1's found:", flank1matches)
                         print("flank2's found:", flank2matches)
+                        fileFailureCount += 1
                         continue
                     
                     elif flank1matches == 0 or flank2matches == 0:
-                        print("Missing a flank.")
+                        print("Missing one or more flanks.")
+                        fileFailureCount += 1
                         continue
                     
                     elif flank1matches == 1 and flank2matches == 1:
@@ -264,12 +281,10 @@ class Ui_MainWindow(QObject):
                             print("Locus maximum:",loc_max)
                         except:
                             print("%s flank not determined" % strain)
+                            fileFailureCount += 1
                             #logging.error('%s Flank locations could not be determined' % (strain))
                             continue
                                 
-                        #!!!self.textEdit.append("%s GenBank annotation files found.")
-                        #!!!self.progressBar.setRange(0, totalFileCount)
-                    #print("total file count:", totalFileCount)
                 
                     #search process
                     candidate = [] #contains the gene of interest
@@ -277,9 +292,6 @@ class Ui_MainWindow(QObject):
                         for strain in assembly:
                             strain = os.path.join(root, strain)
                             if strain.endswith('.gbff'):
-                                fileProgress += 1
-                                time.sleep(0.05)
-                                #self.progressBar.setValue(fileProgress)
                                 QtCore.QCoreApplication.processEvents()
                                 for record in SeqIO.parse(strain, "gb"):
                                     if record.description == f1_desc == f2_desc:
@@ -288,13 +300,8 @@ class Ui_MainWindow(QObject):
                                         for feature in record.features:
                                             if feature.type == "CDS":
                                                 if min(feature.location) in range((loc_min),loc_max):
-                                                    #print("SEARCH TERMS keys:",searchTerms.keys())
-                                                    
                                                     if emptyDict == False:
                                                         for key, value in searchTerms.items():
-                                                            #print("key:", key)
-                                                            #print("value:", value)
-                                                            #print("---")
                                                             if feature.qualifiers[key][0] == value:
                                                                 #append to list
                                                                 candidate.append(feature)
@@ -335,6 +342,7 @@ class Ui_MainWindow(QObject):
                     print("candidate type:", type(candidate))
                          #counts genes in list
                     if candidate != []:
+                        print("candidatelen:", len(candidate))
                         candidate_amount = 0
                         #if len(candidate) <= max_homologs:
                         for item in candidate:
@@ -379,13 +387,9 @@ class Ui_MainWindow(QObject):
                             print("position type:", type(position))
                             print(position)
                             posStart, posEnd = position.split(':')
-                           
-                            
-                        
-                            #print("int position:", int(float(position)))
                             print(type(strand))
                             try:
-                                c_locustag = str(item.qualifiers["locus_tag"])
+                                c_locustag = str(item.qualifiers['locus_tag'])
                                 c_locustag_raw = c_locustag.strip("[\']")
                             except:
                                 c_locustag_raw = float("NaN")
@@ -395,38 +399,52 @@ class Ui_MainWindow(QObject):
                                 raw_protid = protid.strip("[\']") 
                             except: 
                                 raw_protid =  float("NaN")
-
+                                
+                            try:
+                                transTable = (item.qualifiers['transl_table'])
+                                print("transl table found:", transTable)
+                                int_transTable = list(map(int,transTable))
+                            except:
+                                transTable = float("NaN")
                             try:
                                 gene_seq = (item.qualifiers['translation'][0])
                             except:
                                 gene_seq = float("NaN")
                                 #logging.error('%s %s sequence information unavailable' % (gene_desc, strain))
                             
+                            try:
+                                prot_product = str(item.qualifiers['product'])
+                            except:
+                                prot_product = float("NaN")
+                            
                             #sequence comparison - gbff translation compared to manual extraction and translation
+                            print("attempt to extract partial seq")
                             DNA_seq_raw = record_info.seq[int(posStart):int(posEnd)]
                             try:  
                                 if strand == '+':
-                                    #DNA_seq_raw = record_info.seq[int(posStart):int(posEnd)]#+1]
                                     DNA_seq = DNA_seq_raw
                                     print(DNA_seq)
                                 elif strand == '-':
-                                    #DNA_seq_raw = record_info.seq[int(posStart):int(posEnd)]
-                                    print("original seq:", DNA_seq_raw)
                                     print("reverse complementing")
                                     DNA_seq = (DNA_seq_raw.reverse_complement())
                                     print(DNA_seq)
-                                DNA_transl = DNA_seq.translate(table=11) #you could infer the table based on the record info
+                                DNA_transl = DNA_seq.translate(int_transTable[0], to_stop = True, cds = True)
+                                print("original seq:", DNA_seq_raw)
                                 print("my translation:", DNA_transl)
-                                #print(record_info.seq[position])
-                                #print(seq[c_loc_raw])
                             except:
                                 print("cant retrieve seq")
                                 
                                 
+                            seq_differences = Functions.seqComparison(self, gene_seq, DNA_transl, MainWindow)
+                            if seq_differences == True:
+                                override_status = True
+                            elif seq_differences == False:
+                                override_status = False
+                                
                                 
                             print("printing new row: ==============================")
-                            print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, position, strand)                  
-                            new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, position, strand]
+                            print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, position, strand, override_status)                  
+                            new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, position, override_status]
                             
                             
                             searchTermDict = ""
@@ -451,10 +469,9 @@ class Ui_MainWindow(QObject):
                         
                         
                 
-        self.textEdit.append("Extraction finished.")
-                    #return loc_min, loc_max, f1_desc, f2_desc
-                    
-                    #loc_min, loc_max, f1_desc, f2_desc = flanksearch()
+        self.textEdit.append("Extraction finished.")                    
+        loc_min, loc_max = 0, 0
+        f1_desc, f2_desc = None, None
 
 '''
     def __init__(self):

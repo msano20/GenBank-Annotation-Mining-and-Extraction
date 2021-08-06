@@ -7,6 +7,8 @@ Created on Mon Jun 14 15:34:16 2021
 import re 
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5 import QtWidgets
+from Bio import pairwise2
+from Bio.pairwise2 import format_alignment
 
 class Functions:
     def __init__(self):
@@ -77,3 +79,21 @@ class Functions:
         except:
             strand = float("NaN")
         return position, strand
+
+    #compares the translation listed on the annot. file w/ the extracted seq
+    def seqComparison(self, annotTransl, manualTransl, MainWindow):
+        seqDifference = False
+        #subtract point for opening gap, -0.5 for extending it
+        align = pairwise2.align.globalxs(annotTransl, manualTransl, -1, -0.5)
+        for a in align:
+            #print(format_alignment(*a))
+            print("casual alignment:", align)
+            al1,al2, score, begin, end = a
+        metric = float(score/(end-begin))
+        print("out of loop metric:", metric)
+        if metric < 1.0:
+            seqDifference = True
+        return seqDifference
+
+        
+        
