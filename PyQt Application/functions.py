@@ -8,7 +8,6 @@ import re
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5 import QtWidgets
 from Bio import pairwise2
-from Bio.pairwise2 import format_alignment
 
 class Functions:
     def __init__(self):
@@ -57,8 +56,16 @@ class Functions:
             print('cant be identified')
         return f_format
     
+    #identifies if coordinates are vague
+    def ambigLocCheck(self, flank, MainWindow):
+        invalidFlanks = ['>', '<', 'join'] #join could still be used? 
+        if (any(x in flank for x in invalidFlanks)):
+            ambigLocCheck = True
+        else:
+            ambigLocCheck = False
+        return ambigLocCheck
+        
     def determineRange(self, location1, location2, MainWindow): 
-        #print("location 1:", location1)
         minF1 = (min(location1))
         maxF1 = (max(location1))
         minF2 = (min(location2))

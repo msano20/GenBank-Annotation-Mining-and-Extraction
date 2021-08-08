@@ -16,6 +16,8 @@ add some kind of indicator that a sequence Was manually extracted and
 overrid the stated seq
 
 looks for more opportunities to condense mainindo through the functions script
+
+join the join coordinates?
 '''
 import os
 import re
@@ -23,7 +25,7 @@ from PyQt5.QtWidgets import QApplication, QLabel, QLineEdit, QVBoxLayout, QWidge
     QMainWindow, QPushButton, QVBoxLayout, QFileDialog
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QObject, QBasicTimer
-import sys, time
+import sys
 from functions import Functions
 import logging
 import csv
@@ -33,8 +35,7 @@ logging.basicConfig(filename='Errors.log', filemode='a', format='%(name)s - %(le
 
 csv_headers = ['Species', 'Group', 'Strain', 'Chr', 'Accession', 'LocusTag', 'ProtID', 'Seq', 'Product', 'Location', 'Strand', 'SeqOverride']
 
-#ambiguous flanks cannot be used
-invalidFlanks = ['>', '<', 'join'] 
+
 
 class Ui_MainWindow(QObject):
     def setupUi(self, MainWindow):
@@ -188,23 +189,17 @@ class Ui_MainWindow(QObject):
                                    product=self.product_Input.text(), protein_id = self.protid_Input.text()) 
                                    #gene = self.gene_nameInput.text())
         print("target customization variable:", targetCustomization)
-        #print(targetCustomization)
         searchTerms = Functions.searchInterpreter(self, targetCustomization, MainWindow)
         print(searchTerms)
-        
+    
         #The output is written in the same folder as the input
         outputLocation = self.FolderInput.text()
-        
-        
-        print("flank1:", flank_1)
-        print("flank2:", flank_2)
-
         
         flankFormat1 = Functions.flankIdentifier(self, flank_1, MainWindow)
         flankFormat2 = Functions.flankIdentifier(self, flank_2, MainWindow)
         
-        print("flank1 format:", flankFormat1)
-        print("flank2 format:", flankFormat2)
+        print("flank1: %s format: %s" % (flank_1, flankFormat1))
+        print("flank2: %s format: %s" % (flank_2, flankFormat2))
         
         #raise flag if no search terms were entered by user
         emptyDict = all(x==None for x in searchTerms.items())
@@ -256,11 +251,15 @@ class Ui_MainWindow(QObject):
                                 '''
                     #print(type(f1_loc))
                     #print("any statement:", any(x in f1_loc for x in invalidFlanks))
-                    if (any(x in str(f1_loc) for x in invalidFlanks) or any(x in str(f2_loc) for x in invalidFlanks)): #or any(x in f2_loc for x in invalidFlanks)):
+                    #flag
+                    #ambigLoc = (Functions.ambigLocCheck(self, str(f1_loc), MainWindow))
+                    if Functions.ambigLocCheck(self, str(f1_loc), MainWindow) == True or \
+                        Functions.ambigLocCheck(self, str(f2_loc), MainWindow) == True: #add OR statement for F2_flank
                         print("Cannot use partial or joined sequences as flanks (%s to %s)." % (f1_loc, f2_loc))
                         break
                              
-                    #could move this verification process into functions
+                    #if validFlankCount(flank1matches, flank2matches) = False:
+                        #fjdsfsf
                     if flank1matches > 1 or flank2matches > 1:
                         print("Multiple flanks match description. Consider using more unique identifiers")
                         print("flank1's found:", flank1matches)
@@ -268,12 +267,12 @@ class Ui_MainWindow(QObject):
                         fileFailureCount += 1
                         continue
                     
-                    elif flank1matches == 0 or flank2matches == 0:
+                    if flank1matches == 0 or flank2matches == 0:
                         print("Missing one or more flanks.")
                         fileFailureCount += 1
                         continue
                     
-                    elif flank1matches == 1 and flank2matches == 1:
+                    else:
                         try:
                             loc_min, loc_max = Functions.determineRange(self, f1_loc, f2_loc, MainWindow)
                             print("flanks found in %s" % strain)
@@ -340,7 +339,8 @@ class Ui_MainWindow(QObject):
                     
                     
                     print("candidate type:", type(candidate))
-                         #counts genes in list
+                    #counts genes in list
+                    #pass this off into a function?
                     if candidate != []:
                         print("candidatelen:", len(candidate))
                         candidate_amount = 0
@@ -372,11 +372,17 @@ class Ui_MainWindow(QObject):
                             except: 
                                 c_chr_raw = float("NaN")
                             
+                            
                             try:
                                 c_loc_raw = item.location
                                 print("item location:", item.location)
                                 print("c_loc_ra type:", type(c_loc_raw))
                                 print("success. Location:", c_loc_raw)
+                                if Functions.ambigLocCheck(self, str(c_loc_raw), MainWindow) == True:
+                                    print("AMBIGLOC CHECK TRUE")
+                                    continue
+                                    
+                                    
                             except:
                                 c_loc_raw = float("NaN")
                                 
@@ -444,7 +450,7 @@ class Ui_MainWindow(QObject):
                                 
                             print("printing new row: ==============================")
                             print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, position, strand, override_status)                  
-                            new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, position, override_status]
+                            new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, position, strand, override_status]
                             
                             
                             searchTermDict = ""
@@ -461,7 +467,7 @@ class Ui_MainWindow(QObject):
                                 csvfile.close()
                                 
                         print("candidate length:", candidate_amount)     
-                        self.textEdit.append("Extracted %s genes from %s..." % (candidate_amount, rec_id))
+                        self.textEdit.append("Extracted %s gene(s) from %s..." % (candidate_amount, rec_id))
                     else:
                         print("No genes within locus fit the product description")
                     #logging.error('%s %s No genes within locus fit the product description' % (gene_desc, strain))
