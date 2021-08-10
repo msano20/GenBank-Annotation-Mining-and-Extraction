@@ -30,6 +30,9 @@ from functions import Functions
 import logging
 import csv
 from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqFeature import SeqFeature, FeatureLocation
+from Bio.Alphabet import generic_protein
 
 logging.basicConfig(filename='Errors.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s')
 
@@ -269,7 +272,7 @@ class Ui_MainWindow(QObject):
                         continue
                     
                     if flank1matches == 0 or flank2matches == 0:
-                        print("Missing one or more flanks.")
+                        print("Missing one or more flanks.", strain)
                         fileFailureCount += 1
                         continue
                     
@@ -376,19 +379,20 @@ class Ui_MainWindow(QObject):
                                 c_loc_raw = item.location
                                 print("item location:", item.location)
                                 print("c_loc_ra type:", type(c_loc_raw))
-                                print("success. Location:", c_loc_raw)
+                                #type is Bio.SeqFeature.CompoundLocation if join, Bio.SeqFeature.FeatureLocation if standard or ambig
                                 if Functions.ambigLocCheck(self, str(c_loc_raw), MainWindow) == True:
                                     c_loc_raw = float("NaN")
+                                    continue
+                                else:
+                                    #execute idLocation fx here
+                                    strand = c_loc_raw.strand
+                                    start = c_loc_raw.start
+                                    end = c_loc_raw.end
+                                    print(start, end)
                             except:
                                 c_loc_raw = float("NaN")
                                 
-                            #Dividing location into position and sense
-                            position, strand = Functions.idLocation(self, str(c_loc_raw), MainWindow)
-                            print("c_loc after id loc", type(c_loc_raw))
-                            print("position type:", type(position))
-                            print(position)
-                            posStart, posEnd = position.split(':')
-                            print(type(strand))
+
                             try:
                                 c_locustag = str(item.qualifiers['locus_tag'])
                                 c_locustag_raw = c_locustag.strip("[\']")
@@ -419,23 +423,21 @@ class Ui_MainWindow(QObject):
                                 prot_product = float("NaN")
                             
                             #sequence comparison - gbff translation compared to manual extraction and translation
-                            print("attempt to extract partial seq")
-                            DNA_seq_raw = record_info.seq[int(posStart):int(posEnd)]
-                            try:  
-                                if strand == '+':
-                                    DNA_seq = DNA_seq_raw
-                                    print(DNA_seq)
-                                elif strand == '-':
-                                    print("reverse complementing")
-                                    DNA_seq = (DNA_seq_raw.reverse_complement())
-                                    print(DNA_seq)
-                                DNA_transl = DNA_seq.translate(int_transTable[0], to_stop = True, cds = True)
-                                print("original seq:", DNA_seq_raw)
+                            
+                            #DNA_seq_raw = c_loc_raw.extract(record)
+                            
+                            
+                            #DNA_seq_raw = record_info.seq[int(posStart):int(posEnd)]
+                            
+                            try:
+                                DNA_seq_raw = c_loc_raw.extract(record_info.seq)
+                                DNA_transl = DNA_seq_raw.translate(int_transTable[0], to_stop = True, cds = True)
                                 print("my translation:", DNA_transl)
                             except:
-                                print("cant retrieve seq")
-                                
-                                
+                                print("translate not orking ")
+
+
+                            
                             if Functions.seqComparison(self, gene_seq, DNA_transl, MainWindow) == True:
                                 override_status = True
                                 gene_seq = DNA_transl
@@ -444,8 +446,8 @@ class Ui_MainWindow(QObject):
                                 
                                 
                             print("printing new row: ==============================")
-                            print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, position, strand, override_status)                  
-                            new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, position, strand, override_status]
+                            print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, (start+1), end, strand, override_status)                  
+                            new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, (start+1), end, strand, override_status]
                             
                             
                             searchTermDict = ""

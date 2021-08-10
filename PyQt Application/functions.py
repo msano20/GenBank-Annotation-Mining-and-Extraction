@@ -58,7 +58,7 @@ class Functions:
     
     #identifies if coordinates are vague
     def ambigLocCheck(self, flank, MainWindow):
-        invalidFlanks = ['>', '<', 'join'] #join could still be used? 
+        invalidFlanks = ['>', '<'] #join could still be used? 
         if (any(x in flank for x in invalidFlanks)):
             ambigLocCheck = True
         else:
@@ -77,6 +77,7 @@ class Functions:
         return loc_min, loc_max
     
     def idLocation(self, itemLocation, MainWindow):
+        print(type(itemLocation))
         try:
             position = itemLocation[itemLocation.find("[")+1:itemLocation.find("]")]
         except:
