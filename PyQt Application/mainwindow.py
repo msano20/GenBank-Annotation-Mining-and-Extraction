@@ -198,8 +198,8 @@ class Ui_MainWindow(QObject):
         flankFormat1 = Functions.flankIdentifier(self, flank_1, MainWindow)
         flankFormat2 = Functions.flankIdentifier(self, flank_2, MainWindow)
         
-        print("flank1: %s format: %s" % (flank_1, flankFormat1))
-        print("flank2: %s format: %s" % (flank_2, flankFormat2))
+        self.textEdit.append("Flank 1 (%s): %s" % (flankFormat1, flank_1))
+        self.textEdit.append("Flank 2 (%s): %s" % (flankFormat2, flank_2))
         
         #raise flag if no search terms were entered by user
         emptyDict = all(x==None for x in searchTerms.items())
@@ -256,6 +256,7 @@ class Ui_MainWindow(QObject):
                     if Functions.ambigLocCheck(self, str(f1_loc), MainWindow) == True or \
                         Functions.ambigLocCheck(self, str(f2_loc), MainWindow) == True: #add OR statement for F2_flank
                         print("Cannot use partial or joined sequences as flanks (%s to %s)." % (f1_loc, f2_loc))
+                        self.textEdit.append("Cannot use partial or joined sequences as flanks (%s to %s)." % (f1_loc, f2_loc))
                         break
                              
                     #if validFlankCount(flank1matches, flank2matches) = False:
@@ -334,11 +335,9 @@ class Ui_MainWindow(QObject):
                                                             rec_id = ""
                     
                     #At this point, candidate should contain all qualifying features
-                    print("PRINTING LIST OF CANDIDATES:", candidate)
-                    print("-----------------------------------------")
-                    
-                    
-                    print("candidate type:", type(candidate))
+                    #print("PRINTING LIST OF CANDIDATES:", candidate)
+                    #print("-----------------------------------------")
+
                     #counts genes in list
                     #pass this off into a function?
                     if candidate != []:
@@ -379,14 +378,10 @@ class Ui_MainWindow(QObject):
                                 print("c_loc_ra type:", type(c_loc_raw))
                                 print("success. Location:", c_loc_raw)
                                 if Functions.ambigLocCheck(self, str(c_loc_raw), MainWindow) == True:
-                                    print("AMBIGLOC CHECK TRUE")
-                                    continue
-                                    
-                                    
+                                    c_loc_raw = float("NaN")
                             except:
                                 c_loc_raw = float("NaN")
                                 
-                            
                             #Dividing location into position and sense
                             position, strand = Functions.idLocation(self, str(c_loc_raw), MainWindow)
                             print("c_loc after id loc", type(c_loc_raw))
@@ -441,10 +436,10 @@ class Ui_MainWindow(QObject):
                                 print("cant retrieve seq")
                                 
                                 
-                            seq_differences = Functions.seqComparison(self, gene_seq, DNA_transl, MainWindow)
-                            if seq_differences == True:
+                            if Functions.seqComparison(self, gene_seq, DNA_transl, MainWindow) == True:
                                 override_status = True
-                            elif seq_differences == False:
+                                gene_seq = DNA_transl
+                            else:
                                 override_status = False
                                 
                                 
@@ -455,7 +450,7 @@ class Ui_MainWindow(QObject):
                             
                             searchTermDict = ""
                             if emptyDict == True:
-                                searchTermDict = "All" #!!Id can be inputted flank names
+                                searchTermDict = ("%s:%s" % (flank_1, flank_2)) #!!Id can be inputted flank names
                             else:
                                 for key, value in searchTerms.items():
                                     searchTermDict += key + "-" + value + "_" #make a cleaner output
@@ -467,9 +462,11 @@ class Ui_MainWindow(QObject):
                                 csvfile.close()
                                 
                         print("candidate length:", candidate_amount)     
-                        self.textEdit.append("Extracted %s gene(s) from %s..." % (candidate_amount, rec_id))
+                        self.textEdit.append("Extracted %s gene(s) from %s %s %s %s..." % \
+                                             (candidate_amount, rec_id, c_species, c_family, c_strain_raw))
                     else:
-                        print("No genes within locus fit the product description")
+                        print("No genes within locus match parameters.")
+                        self.textEdit.append("No genes within locus match parameters")
                     #logging.error('%s %s No genes within locus fit the product description' % (gene_desc, strain))
                         
                         
