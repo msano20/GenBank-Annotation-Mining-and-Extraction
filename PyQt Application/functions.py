@@ -20,12 +20,9 @@ class Functions:
         "Select ", options=options)
 
         if filename:
-            print(filename)
             clean_filename = (str(filename))
-            #print("cleaned filename:", clean_filename)
             return clean_filename
-        else:
-            print("no")
+        
     
     def searchInterpreter(self, searchDictionary, MainWindow):
         #Determines which search fields contain terms. 
@@ -58,7 +55,7 @@ class Functions:
     
     #identifies if coordinates are vague
     def ambigLocCheck(self, flank, MainWindow):
-        invalidFlanks = ['>', '<'] #join could still be used? 
+        invalidFlanks = ['>', '<']
         if (any(x in flank for x in invalidFlanks)):
             ambigLocCheck = True
         else:
@@ -75,18 +72,6 @@ class Functions:
         loc_max = (max(locusvals) + 1)
         loc_min = (min(locusvals))         
         return loc_min, loc_max
-    
-    def idLocation(self, itemLocation, MainWindow):
-        print(type(itemLocation))
-        try:
-            position = itemLocation[itemLocation.find("[")+1:itemLocation.find("]")]
-        except:
-            position = float("NaN")
-        try:
-            strand = itemLocation[itemLocation.find("(")+1:itemLocation.find(")")]
-        except:
-            strand = float("NaN")
-        return position, strand
 
     #compares the translation listed on the annot. file w/ the extracted seq
     def seqComparison(self, annotTransl, manualTransl, MainWindow):
@@ -95,10 +80,8 @@ class Functions:
         align = pairwise2.align.globalxs(annotTransl, manualTransl, -1, -0.5)
         for a in align:
             #print(format_alignment(*a))
-            print("casual alignment:", align)
             al1,al2, score, begin, end = a
         metric = float(score/(end-begin))
-        print("out of loop metric:", metric)
         if metric < 1.0:
             seqDifference = True
         return seqDifference

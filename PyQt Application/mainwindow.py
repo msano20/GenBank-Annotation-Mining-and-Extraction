@@ -8,16 +8,12 @@
 
 '''
 
-update textEdit
 
 make the makecsv function so the headers are applied
 
-add some kind of indicator that a sequence Was manually extracted and 
-overrid the stated seq
-
 looks for more opportunities to condense mainindo through the functions script
 
-join the join coordinates?
+need to make output folder same as input folder
 '''
 import os
 import re
@@ -36,7 +32,7 @@ from Bio.Alphabet import generic_protein
 
 logging.basicConfig(filename='Errors.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s')
 
-csv_headers = ['Species', 'Group', 'Strain', 'Chr', 'Accession', 'LocusTag', 'ProtID', 'Seq', 'Product', 'Location', 'Strand', 'SeqOverride']
+csv_headers = ['Species', 'Group', 'Strain', 'Chr', 'Accession', 'LocusTag', 'ProtID', 'Seq', 'Product', 'Start', 'End', 'Strand', 'SeqOverride']
 
 
 
@@ -76,10 +72,6 @@ class Ui_MainWindow(QObject):
         self.locus_label = QtWidgets.QLabel(self.centralwidget)
         self.locus_label.setGeometry(QtCore.QRect(50, 200, 51, 21))
         self.locus_label.setObjectName("locus_label")
-        #self.gene_nameInput = QtWidgets.QLineEdit(self.centralwidget)
-        #self.gene_nameInput.setGeometry(QtCore.QRect(450, 230, 221, 21))
-        #self.gene_nameInput.setText("")
-        #self.gene_nameInput.setObjectName("gene_nameInput")
         self.extractbtn = QtWidgets.QPushButton(self.centralwidget)
         self.extractbtn.setGeometry(QtCore.QRect(270, 280, 191, 41)) #270, 300, 191, 41
         self.extractbtn.setObjectName("extractbtn")
@@ -88,8 +80,6 @@ class Ui_MainWindow(QObject):
         self.oldlocus_Input.setText("")
         self.oldlocus_Input.setObjectName("oldlocus_Input")
         self.geneName_label = QtWidgets.QLabel(self.centralwidget)
-        #self.geneName_label.setGeometry(QtCore.QRect(370, 230, 61, 21))
-        #self.geneName_label.setObjectName("geneName_label")
         self.product_Input = QtWidgets.QLineEdit(self.centralwidget)
         self.product_Input.setGeometry(QtCore.QRect(450, 230, 221, 21))
         self.product_Input.setText("")
@@ -101,10 +91,6 @@ class Ui_MainWindow(QObject):
         self.textEdit = QtWidgets.QTextEdit(self.centralwidget)
         self.textEdit.setGeometry(QtCore.QRect(50, 350, 621, 150)) #50, 359, 621, 81
         self.textEdit.setObjectName("textEdit")
-        #self.progressBar = QtWidgets.QProgressBar(self.centralwidget)
-        #self.progressBar.setGeometry(QtCore.QRect(50, 460, 621, 16))
-        #self.progressBar.setProperty("value", 0)
-        #self.progressBar.setObjectName("progressBar")
         self.FolderUpload = QtWidgets.QPushButton(self.centralwidget)
         self.FolderUpload.setGeometry(QtCore.QRect(50, 60, 101, 21))
         self.FolderUpload.setObjectName("FolderUpload")
@@ -152,7 +138,6 @@ class Ui_MainWindow(QObject):
         self.protid_label.setText(_translate("MainWindow", "Protein ID"))
         self.locus_label.setText(_translate("MainWindow", "Locus Tag"))
         self.extractbtn.setText(_translate("MainWindow", "Extract"))
-        #self.geneName_label.setText(_translate("MainWindow", "Gene Name"))
         self.FolderUpload.setText(_translate("MainWindow", "Input Folder"))
         self.title.setText(_translate("MainWindow", "Gene Extraction"))
         self.locus_label_2.setText(_translate("MainWindow", "Flank 1 Identifier"))
@@ -178,16 +163,8 @@ class Ui_MainWindow(QObject):
     
     #@pyqtSlot()
     def extract(self, MainWindow):
-        '''
-        locusLabel= self.locuslabel_Input.text()
-        oldLocus = self.oldlocus_Input.text()
-        product = self.product_Input.text()
-        protID = self.protid_Input.text()
-        #geneName = self.gene_nameInput.text()
-        '''
-        
-        flank_1 = self.flankInput1.text()
-        flank_2 = self.flankInput2.text()
+        flank_1 = self.flankInput1.text().lower() #!
+        flank_2 = self.flankInput2.text().lower() #!
         targetCustomization = dict(locus_tag=self.locuslabel_Input.text(), old_locus_tag=self.oldlocus_Input.text(),
                                    product=self.product_Input.text(), protein_id = self.protid_Input.text()) 
                                    #gene = self.gene_nameInput.text())
@@ -197,6 +174,9 @@ class Ui_MainWindow(QObject):
     
         #The output is written in the same folder as the input
         outputLocation = self.FolderInput.text()
+        print("Output location:", outputLocation)
+        ouputFolderName = os.path.join(outputLocation)
+        os.chdir(outputLocation)
         
         flankFormat1 = Functions.flankIdentifier(self, flank_1, MainWindow)
         flankFormat2 = Functions.flankIdentifier(self, flank_2, MainWindow)
@@ -209,72 +189,52 @@ class Ui_MainWindow(QObject):
         print("emptydict status:", emptyDict)
         
         self.textEdit.append("Scanning %s..." % outputLocation)
-        fileProgress = 0
         totalFileCount = 0
         fileFailureCount = 0
         for root, dirs, assembly in os.walk(outputLocation, topdown=True):
             for strain in assembly:
                 strain = os.path.join(root, strain)
+                
                 if strain.endswith('.gbff'):
+                    print(strain)
                     flank1matches = 0
                     flank2matches = 0
                     totalFileCount += 1
-                    #annotFile = SeqIO.parse(strain, 'gb')
-                    for record in SeqIO.parse(strain, "gb"): #prints seqs for all three chromosomes
-                        
-                        #print(record.seq[:20])
+                    for record in SeqIO.parse(strain, "gb"):
                         for feature in record.features:
-                        #print(feature.source)
                             if feature.type == "CDS":
                                 try:
-                                    if feature.qualifiers['%s' % flankFormat1][0] == flank_1:
-                                        #f1_loc = str(feature.location) #converted to str for 'any' function
+                                    #print(feature.qualifiers['%s' % flankFormat1][0].lower())
+                                    if str(feature.qualifiers['%s' % flankFormat1][0].lower()) == flank_1:
                                         f1_loc = feature.location
-                                        print(type(f1_loc))
-                                        #if any(x in f1_loc for x in invalidFlanks):
-                                            #print("invalid symbol")
-                                            #break
                                         f1_desc = record.description
                                         flank1matches += 1
                                         print("found 1 %s", f1_loc)
-                                    if feature.qualifiers['%s' % flankFormat2][0] == flank_2:
-                                        #f2_loc = str(feature.location)
+                                    if feature.qualifiers['%s' % flankFormat2][0].lower() == flank_2:
                                         f2_loc = feature.location
-                                        #if any(x in f2_loc for x in invalidFlanks):
-                                            #print("invalid symbol")
-                                            #break
                                         f2_desc = record.description
                                         flank2matches += 1
                                         print("found 2 %s", f2_loc)
                                 except:
                                     pass
-                                '''
-                                if feature.qualifiers['%s' % flankFormat1][0] == flank_1:
-                                if feature.qualifiers['%s' % flankFormat2][0] == flank_2:
-                                '''
-                    #print(type(f1_loc))
-                    #print("any statement:", any(x in f1_loc for x in invalidFlanks))
-                    #flag
-                    #ambigLoc = (Functions.ambigLocCheck(self, str(f1_loc), MainWindow))
-                    if Functions.ambigLocCheck(self, str(f1_loc), MainWindow) == True or \
-                        Functions.ambigLocCheck(self, str(f2_loc), MainWindow) == True: #add OR statement for F2_flank
-                        print("Cannot use partial or joined sequences as flanks (%s to %s)." % (f1_loc, f2_loc))
-                        self.textEdit.append("Cannot use partial or joined sequences as flanks (%s to %s)." % (f1_loc, f2_loc))
-                        break
-                             
-                    #if validFlankCount(flank1matches, flank2matches) = False:
-                        #fjdsfsf
-                    if flank1matches > 1 or flank2matches > 1:
+                    
+                    if flank1matches == 0 or flank2matches == 0:
+                        print("Missing one or more flanks.", strain)
+                        fileFailureCount += 1
+                        continue
+                    
+                    elif flank1matches > 1 or flank2matches > 1:
                         print("Multiple flanks match description. Consider using more unique identifiers")
                         print("flank1's found:", flank1matches)
                         print("flank2's found:", flank2matches)
                         fileFailureCount += 1
                         continue
                     
-                    if flank1matches == 0 or flank2matches == 0:
-                        print("Missing one or more flanks.", strain)
-                        fileFailureCount += 1
-                        continue
+                    elif Functions.ambigLocCheck(self, str(f1_loc), MainWindow) == True or \
+                        Functions.ambigLocCheck(self, str(f2_loc), MainWindow) == True:
+                        print("Cannot use partial or joined sequences as flanks (%s to %s)." % (f1_loc, f2_loc))
+                        self.textEdit.append("Cannot use partial or joined sequences as flanks (%s to %s)." % (f1_loc, f2_loc))
+                        break
                     
                     else:
                         try:
@@ -290,60 +250,54 @@ class Ui_MainWindow(QObject):
                                 
                 
                     #search process
+                    print("orking directory:", os.getcwd())
                     candidate = [] #contains the gene of interest
-                    for root, dirs, assembly in os.walk('.', topdown=True):
-                        for strain in assembly:
-                            strain = os.path.join(root, strain)
-                            if strain.endswith('.gbff'):
-                                QtCore.QCoreApplication.processEvents()
-                                for record in SeqIO.parse(strain, "gb"):
-                                    if record.description == f1_desc == f2_desc:
-                                        gene_desc = record.description
-                                        print(gene_desc)
-                                        for feature in record.features:
-                                            if feature.type == "CDS":
-                                                if min(feature.location) in range((loc_min),loc_max):
-                                                    if emptyDict == False:
-                                                        for key, value in searchTerms.items():
-                                                            if feature.qualifiers[key][0] == value:
-                                                                #append to list
-                                                                candidate.append(feature)
-                                                                record_info = record
-                                                                source_feature = record.features[0]
-                                                                source_qualifiers = source_feature.qualifiers
-                                                                
-                                                                try:
-                                                                    rec_desc = record.description
-                                                                except:
-                                                                    rec_desc = ""
-                                                                try:
-                                                                    rec_id = record.id
-                                                                except:
-                                                                    rec_id = ""
-                                                                
-                                                            
-                                                        #print(candidate)
-                                                    elif emptyDict == True:
-                                                        record_info = record
-                                                        source_feature = record.features[0]
-                                                        source_qualifiers = source_feature.qualifiers
-                                                        candidate.append(feature)
-                                                        try:
-                                                            rec_desc = record.description
-                                                        except:
-                                                            rec_desc = ""
-                                                        try:
-                                                            rec_id = record.id
-                                                        except:
-                                                            rec_id = ""
+                    for record in SeqIO.parse(strain, "gb"):
+                        if record.description == f1_desc == f2_desc:
+                            gene_desc = record.description
+                            for feature in record.features:
+                                
+                                if feature.type == "CDS":
+                                    if min(feature.location) in range((loc_min),loc_max):
+                                        if emptyDict == False:
+                                            for key, value in searchTerms.items():
+                                                if feature.qualifiers[key][0] == value:
+                                                    #append to list
+                                                    candidate.append(feature)
+                                                    record_info = record
+                                                    source_feature = record.features[0]
+                                                    source_qualifiers = source_feature.qualifiers
+                                                    
+                                                    QApplication.processEvents()
+                                                    try:
+                                                        rec_desc = record.description
+                                                    except:
+                                                        rec_desc = ""
+                                                        print("rec desc not recognized")
+                                                    try:
+                                                        rec_id = record.id
+                                                    except:
+                                                        rec_id = ""
+                                                    
+                                                
+                                            #print(candidate)
+                                        elif emptyDict == True:
+                                            record_info = record
+                                            source_feature = record.features[0]
+                                            source_qualifiers = source_feature.qualifiers
+                                            candidate.append(feature)
+                                            try:
+                                                rec_desc = record.description
+                                            except:
+                                                rec_desc = ""
+                                            try:
+                                                rec_id = record.id
+                                            except:
+                                                rec_id = ""
                     
                     #At this point, candidate should contain all qualifying features
-                    #print("PRINTING LIST OF CANDIDATES:", candidate)
-                    #print("-----------------------------------------")
-
-                    #counts genes in list
-                    #pass this off into a function?
                     if candidate != []:
+                        QtCore.QCoreApplication.processEvents()
                         print("candidatelen:", len(candidate))
                         candidate_amount = 0
                         #if len(candidate) <= max_homologs:
@@ -423,32 +377,27 @@ class Ui_MainWindow(QObject):
                                 prot_product = float("NaN")
                             
                             #sequence comparison - gbff translation compared to manual extraction and translation
-                            
-                            #DNA_seq_raw = c_loc_raw.extract(record)
-                            
-                            
-                            #DNA_seq_raw = record_info.seq[int(posStart):int(posEnd)]
-                            
+
                             try:
                                 DNA_seq_raw = c_loc_raw.extract(record_info.seq)
                                 DNA_transl = DNA_seq_raw.translate(int_transTable[0], to_stop = True, cds = True)
                                 print("my translation:", DNA_transl)
                             except:
                                 print("translate not orking ")
-
-
-                            
-                            if Functions.seqComparison(self, gene_seq, DNA_transl, MainWindow) == True:
-                                override_status = True
-                                gene_seq = DNA_transl
+                                DNA_transl = ""
+                                
+                            if DNA_transl != "":
+                                if Functions.seqComparison(self, gene_seq, DNA_transl, MainWindow) == True:
+                                    override_status = True
+                                    gene_seq = DNA_transl
+                                else:
+                                    override_status = False
                             else:
-                                override_status = False
+                                gene_seq = float("NaN")
                                 
-                                
-                            print("printing new row: ==============================")
+                            print("======================================================")
                             print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, (start+1), end, strand, override_status)                  
                             new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, (start+1), end, strand, override_status]
-                            
                             
                             searchTermDict = ""
                             if emptyDict == True:
@@ -457,23 +406,23 @@ class Ui_MainWindow(QObject):
                                 for key, value in searchTerms.items():
                                     searchTermDict += key + "-" + value + "_" #make a cleaner output
                                     #i += 1
-                            output_filename = (str(c_species) + '_' + str(searchTermDict) + '.csv')
+                            output_filename = os.path.join(ouputFolderName, str(c_species) + '_' + str(searchTermDict) + '.csv')
+                            
                             with open(output_filename, 'a', newline='') as csvfile:  
                                 writer = csv.writer(csvfile)
                                 writer.writerow(new_row)
                                 csvfile.close()
                                 
                         print("candidate length:", candidate_amount)     
-                        self.textEdit.append("Extracted %s gene(s) from %s %s %s %s..." % \
-                                             (candidate_amount, rec_id, c_species, c_family, c_strain_raw))
+                        self.textEdit.append("Extracted %s/%s gene(s) between flanks from %s %s %s %s..." % \
+                                             ((totalFileCount - fileFailureCount), (totalFileCount), rec_id, c_species, c_family, c_strain_raw))
+                        totalFileCount, fileFailureCount = 0, 0
                     else:
-                        print("No genes within locus match parameters.")
+                        print("No genes within locus match parameters for %s." % (strain))
                         self.textEdit.append("No genes within locus match parameters")
                     #logging.error('%s %s No genes within locus fit the product description' % (gene_desc, strain))
+
                         
-                        
-                        
-                
         self.textEdit.append("Extraction finished.")                    
         loc_min, loc_max = 0, 0
         f1_desc, f2_desc = None, None
