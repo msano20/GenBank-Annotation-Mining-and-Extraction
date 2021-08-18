@@ -24,7 +24,7 @@ Flanks can be specified using the provided field inputs:
 * protein_id
 * locus_tag
 
-The program will accept mixed flank formats. It is recommended the flank identifiers used are unique. If more than two total flanks are found, the program will not extract from that file. 
+The program will accept mixed flank formats. It is recommended the flank identifiers used are unique. If more than two total flanks are found, the program will not extract from that file. It is recommended to search based on locus_tag and use the other options when this information is unknown.
 
 Along with flank inputs, you can also specify a certain attribute you are seeking within your target area in the form of the following specifiers:
 * locus_tag
@@ -34,5 +34,11 @@ Along with flank inputs, you can also specify a certain attribute you are seekin
 
 Note that if you enter multiple specifiers only CDS regions matching all of the provided fields will be returned. 
 
+## Error Log
+The program includes a basic error log configuration which will inform the user of various common errors encountered during extraction. They are as follows: 
+* Ambiguous or joined sequence coordinates inputted as flanks. The script requires exact coordinates to know where to extract. 
+* One or more inputted flank IDs could not be found within the file. 
+* Multiple CDS regions in the file match one or more of the inputted flanks. Each flank must be unique so the script can know where to extract.
+* Range could not be extracted from flank coordinates. 
 
 
