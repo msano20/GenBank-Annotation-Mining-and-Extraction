@@ -28,7 +28,7 @@ import csv
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation
-from Bio.Alphabet import generic_protein
+from datetime import datetime
 
 logging.basicConfig(filename='Errors.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s')
 
@@ -163,8 +163,13 @@ class Ui_MainWindow(QObject):
     
     #@pyqtSlot()
     def extract(self, MainWindow):
+        
+        logging.basicConfig(filename='Error_log.log', filemode='a', datefmt='%Y-%m-%d %H:%M:%S', format='%(asctime)s : %(levelname)s - %(message)s')
+        
         flank_1 = self.flankInput1.text().lower() #!
         flank_2 = self.flankInput2.text().lower() #!
+        
+        
         targetCustomization = dict(locus_tag=self.locuslabel_Input.text(), old_locus_tag=self.oldlocus_Input.text(),
                                    product=self.product_Input.text(), protein_id = self.protid_Input.text()) 
                                    #gene = self.gene_nameInput.text())
@@ -183,6 +188,8 @@ class Ui_MainWindow(QObject):
         
         self.textEdit.append("Flank 1 (%s): %s" % (flankFormat1, flank_1))
         self.textEdit.append("Flank 2 (%s): %s" % (flankFormat2, flank_2))
+        
+        
         
         #raise flag if no search terms were entered by user
         emptyDict = all(x==None for x in searchTerms.items())
@@ -210,31 +217,35 @@ class Ui_MainWindow(QObject):
                                         f1_desc = record.description
                                         flank1matches += 1
                                         print("found 1 %s", f1_loc)
+                                        if Functions.ambigLocCheck(self, str(f1_loc), MainWindow) == True:
+                                            logging.error('%s: Cannot use partial or joined sequences as flanks (%s)' % (strain, f1_loc))
+                                            continue
+                                            
                                     if feature.qualifiers['%s' % flankFormat2][0].lower() == flank_2:
                                         f2_loc = feature.location
                                         f2_desc = record.description
                                         flank2matches += 1
                                         print("found 2 %s", f2_loc)
+                                        if Functions.ambigLocCheck(self, str(f2_loc), MainWindow) == True:
+                                            logging.error('%s: Cannot use partial or joined sequences as flanks (%s)' % (strain, f2_loc))
+                                            continue
                                 except:
                                     pass
                     
                     if flank1matches == 0 or flank2matches == 0:
                         print("Missing one or more flanks.", strain)
                         fileFailureCount += 1
+                        logging.error('%s Unable to find given flanks within GBFF file' % (strain))
                         continue
                     
                     elif flank1matches > 1 or flank2matches > 1:
-                        print("Multiple flanks match description. Consider using more unique identifiers")
-                        print("flank1's found:", flank1matches)
-                        print("flank2's found:", flank2matches)
+                        print("More than 1 flank matches description. Consider using more unique identifiers")
                         fileFailureCount += 1
+                        logging.error('%s: More than 1 flank matches description. Flank 1 matches: %s. Flank 2 matches:%s' % (strain, flank1matches, flank2matches))
                         continue
                     
-                    elif Functions.ambigLocCheck(self, str(f1_loc), MainWindow) == True or \
-                        Functions.ambigLocCheck(self, str(f2_loc), MainWindow) == True:
-                        print("Cannot use partial or joined sequences as flanks (%s to %s)." % (f1_loc, f2_loc))
-                        self.textEdit.append("Cannot use partial or joined sequences as flanks (%s to %s)." % (f1_loc, f2_loc))
-                        break
+                        #QApplication.quit()
+
                     
                     else:
                         try:
@@ -245,12 +256,11 @@ class Ui_MainWindow(QObject):
                         except:
                             print("%s flank not determined" % strain)
                             fileFailureCount += 1
-                            #logging.error('%s Flank locations could not be determined' % (strain))
+                            logging.error('%s Flank locations could not be determined' % (strain))
                             continue
                                 
                 
                     #search process
-                    print("orking directory:", os.getcwd())
                     candidate = [] #contains the gene of interest
                     for record in SeqIO.parse(strain, "gb"):
                         if record.description == f1_desc == f2_desc:
@@ -333,12 +343,10 @@ class Ui_MainWindow(QObject):
                                 c_loc_raw = item.location
                                 print("item location:", item.location)
                                 print("c_loc_ra type:", type(c_loc_raw))
-                                #type is Bio.SeqFeature.CompoundLocation if join, Bio.SeqFeature.FeatureLocation if standard or ambig
                                 if Functions.ambigLocCheck(self, str(c_loc_raw), MainWindow) == True:
                                     c_loc_raw = float("NaN")
                                     continue
                                 else:
-                                    #execute idLocation fx here
                                     strand = c_loc_raw.strand
                                     start = c_loc_raw.start
                                     end = c_loc_raw.end
@@ -401,7 +409,7 @@ class Ui_MainWindow(QObject):
                             
                             searchTermDict = ""
                             if emptyDict == True:
-                                searchTermDict = ("%s:%s" % (flank_1, flank_2)) #!!Id can be inputted flank names
+                                searchTermDict = ("%s:%s" % (flank_1, flank_2))
                             else:
                                 for key, value in searchTerms.items():
                                     searchTermDict += key + "-" + value + "_" #make a cleaner output

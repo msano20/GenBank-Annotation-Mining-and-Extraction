@@ -22,7 +22,6 @@ class Functions:
         if filename:
             clean_filename = (str(filename))
             return clean_filename
-        
     
     def searchInterpreter(self, searchDictionary, MainWindow):
         #Determines which search fields contain terms. 
