@@ -40,5 +40,6 @@ The program includes a basic error log configuration which will inform the user 
 * One or more inputted flank IDs could not be found within the file. 
 * Multiple CDS regions in the file match one or more of the inputted flanks. Each flank must be unique so the script can know where to extract.
 * Range could not be extracted from flank coordinates. 
+* No genes could be found within the target region that match the provided identifiers. 
 
 
