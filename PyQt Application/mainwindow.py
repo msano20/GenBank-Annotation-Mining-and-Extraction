@@ -6,15 +6,6 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-'''
-
-
-make the makecsv function so the headers are applied
-
-looks for more opportunities to condense mainindo through the functions script
-
-need to make output folder same as input folder
-'''
 import os
 import re
 from PyQt5.QtWidgets import QApplication, QLabel, QLineEdit, QVBoxLayout, QWidget, \
@@ -166,8 +157,8 @@ class Ui_MainWindow(QObject):
         
         logging.basicConfig(filename='Error_log.log', filemode='a', datefmt='%Y-%m-%d %H:%M:%S', format='%(asctime)s : %(levelname)s - %(message)s')
         
-        flank_1 = self.flankInput1.text().lower() #!
-        flank_2 = self.flankInput2.text().lower() #!
+        flank_1 = self.flankInput1.text().lower() 
+        flank_2 = self.flankInput2.text().lower() 
         
         
         targetCustomization = dict(locus_tag=self.locuslabel_Input.text(), old_locus_tag=self.oldlocus_Input.text(),
@@ -243,8 +234,6 @@ class Ui_MainWindow(QObject):
                         fileFailureCount += 1
                         logging.error('%s: More than 1 flank matches description. Flank 1 matches: %s. Flank 2 matches:%s' % (strain, flank1matches, flank2matches))
                         continue
-                    
-                        #QApplication.quit()
 
                     
                     else:
@@ -310,7 +299,6 @@ class Ui_MainWindow(QObject):
                         QtCore.QCoreApplication.processEvents()
                         print("candidatelen:", len(candidate))
                         candidate_amount = 0
-                        #if len(candidate) <= max_homologs:
                         for item in candidate:
                             print("item:", item)
                             candidate_amount += 1
@@ -385,7 +373,6 @@ class Ui_MainWindow(QObject):
                                 prot_product = float("NaN")
                             
                             #sequence comparison - gbff translation compared to manual extraction and translation
-
                             try:
                                 DNA_seq_raw = c_loc_raw.extract(record_info.seq)
                                 DNA_transl = DNA_seq_raw.translate(int_transTable[0], to_stop = True, cds = True)
@@ -403,8 +390,7 @@ class Ui_MainWindow(QObject):
                             else:
                                 gene_seq = float("NaN")
                                 
-                            print("======================================================")
-                            print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, (start+1), end, strand, override_status)                  
+                            #print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, (start+1), end, strand, override_status)                  
                             new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, (start+1), end, strand, override_status]
                             
                             searchTermDict = ""
@@ -428,7 +414,7 @@ class Ui_MainWindow(QObject):
                     else:
                         print("No genes within locus match parameters for %s." % (strain))
                         self.textEdit.append("No genes within locus match parameters")
-                    #logging.error('%s %s No genes within locus fit the product description' % (gene_desc, strain))
+                        logging.error('%s %s No genes within locus fit the product description' % (strain))
 
                         
         self.textEdit.append("Extraction finished.")                    
