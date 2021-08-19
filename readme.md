@@ -2,15 +2,15 @@ This repository holds various tool I have created for the purpose of sequence ex
 
 I have aspired for this project to eventually become applicable to a broader range of bacterial genera, though this possibility will vary based on a microbe-by-microbe basis. My PyQt application is my latest approach to this. 
 
-###### PyQt Application/
+##### PyQt Application/
 Employ conserved flanks in the form of locus tags, protein products, or protein IDs and extract specific genes (or the entire set of genes) located beteween. Further identifiers for desired genes can be entered in the supplied fields. Consult the readme contained in the subfolder for further information. 
 
-###### Annotation-Based_Gene_Fasta_Extraction.py
+##### Annotation-Based_Gene_Fasta_Extraction.py
 Iterates through annotation (.GBFF) files, searches between flanks, and extracts target gene sequence. Outputs a .FASTA file.
 
-###### Blast-Based_OAG_Extraction.py
+##### Blast-Based_OAG_Extraction.py
 Input a whole genome .FASTA file to receive the locus sequence in between as specified by two flanking genes.
 
-###### CSV_Database_Creator.py
+##### CSV_Database_Creator.py
 The original script I based the PyQt application on. Iterates through annotation (.GBFF) files, searches between flanks, and 
 extracts a target gene sequence along with species, group, strain, chromosome, accession number, locus tag, and protein ID organized as fields within a CSV file.
