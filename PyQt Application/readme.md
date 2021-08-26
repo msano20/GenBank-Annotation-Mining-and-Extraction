@@ -24,7 +24,7 @@ Flanks can be specified using the provided field inputs:
 * protein_id
 * locus_tag
 
-The program will accept mixed flank formats. It is recommended the flank identifiers used are unique. If more than two total flanks are found, the program will not extract from that file. It is recommended to search based on locus_tag and use the other options when this information is unknown.
+The program will accept mixed flank formats. It is recommended the flank identifiers used are unique. If more than two total flanks are found, the program will not extract from that file. It is recommended to search based on locus_tag if only analyzing one file, and product if you are scanning many annotation files.
 
 Along with flank inputs, you can also specify a certain attribute you are seeking within your target area in the form of the following specifiers:
 * locus_tag
