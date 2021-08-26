@@ -3,29 +3,19 @@
 # Form implementation generated from reading ui file 'mainwindow.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.3
-#
-# WARNING! All changes made in this file will be lost!
 
 import os
-import re
-from PyQt5.QtWidgets import QApplication, QLabel, QLineEdit, QVBoxLayout, QWidget, \
-    QMainWindow, QPushButton, QVBoxLayout, QFileDialog
+from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QObject, QBasicTimer
-import sys
+from PyQt5.QtCore import QObject
 from functions import Functions
 import logging
 import csv
 from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio.SeqFeature import SeqFeature, FeatureLocation
-from datetime import datetime
 
 logging.basicConfig(filename='Errors.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s')
 
 csv_headers = ['Species', 'Group', 'Strain', 'Chr', 'Accession', 'LocusTag', 'ProtID', 'Seq', 'Product', 'Start', 'End', 'Strand', 'SeqOverride']
-
-
 
 class Ui_MainWindow(QObject):
     def setupUi(self, MainWindow):
@@ -157,8 +147,8 @@ class Ui_MainWindow(QObject):
         
         logging.basicConfig(filename='Error_log.log', filemode='a', datefmt='%Y-%m-%d %H:%M:%S', format='%(asctime)s : %(levelname)s - %(message)s')
         
-        flank_1 = self.flankInput1.text().lower() 
-        flank_2 = self.flankInput2.text().lower() 
+        flank_1 = self.flankInput1.text().lower() #!
+        flank_2 = self.flankInput2.text().lower() #!
         
         
         targetCustomization = dict(locus_tag=self.locuslabel_Input.text(), old_locus_tag=self.oldlocus_Input.text(),
@@ -234,6 +224,8 @@ class Ui_MainWindow(QObject):
                         fileFailureCount += 1
                         logging.error('%s: More than 1 flank matches description. Flank 1 matches: %s. Flank 2 matches:%s' % (strain, flank1matches, flank2matches))
                         continue
+                    
+                        #QApplication.quit()
 
                     
                     else:
@@ -299,6 +291,7 @@ class Ui_MainWindow(QObject):
                         QtCore.QCoreApplication.processEvents()
                         print("candidatelen:", len(candidate))
                         candidate_amount = 0
+                        #if len(candidate) <= max_homologs:
                         for item in candidate:
                             print("item:", item)
                             candidate_amount += 1
@@ -373,6 +366,7 @@ class Ui_MainWindow(QObject):
                                 prot_product = float("NaN")
                             
                             #sequence comparison - gbff translation compared to manual extraction and translation
+
                             try:
                                 DNA_seq_raw = c_loc_raw.extract(record_info.seq)
                                 DNA_transl = DNA_seq_raw.translate(int_transTable[0], to_stop = True, cds = True)
@@ -390,7 +384,8 @@ class Ui_MainWindow(QObject):
                             else:
                                 gene_seq = float("NaN")
                                 
-                            #print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, (start+1), end, strand, override_status)                  
+                            print("======================================================")
+                            print(c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, (start+1), end, strand, override_status)                  
                             new_row = [c_species, c_family, c_strain_raw, c_chr_raw, rec_id, c_locustag_raw, raw_protid, gene_seq, prot_product, (start+1), end, strand, override_status]
                             
                             searchTermDict = ""
@@ -413,8 +408,8 @@ class Ui_MainWindow(QObject):
                         totalFileCount, fileFailureCount = 0, 0
                     else:
                         print("No genes within locus match parameters for %s." % (strain))
-                        self.textEdit.append("No genes within locus match parameters")
-                        logging.error('%s %s No genes within locus fit the product description' % (strain))
+                        self.textEdit.append("No genes within locus match parameters for %s." % (strain))
+                    #logging.error('%s %s No genes within locus fit the product description' % (gene_desc, strain))
 
                         
         self.textEdit.append("Extraction finished.")                    
